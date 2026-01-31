@@ -12,31 +12,32 @@ export const GEMINI_MODEL = 'gemini-3-flash-preview';
 // OpenAI Configuration
 export const OPENAI_MODEL = 'gpt-4o-mini';
 
-// Helper to check various env prefixes (Vite uses VITE_, Next uses NEXT_PUBLIC_, CRA uses REACT_APP_)
-const getEnv = (key: string) => {
-  // Check standard process.env (Node/Webpack)
-  if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key];
-  // Check Vite specific (import.meta.env)
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[`VITE_${key}`]) return import.meta.env[`VITE_${key}`];
-  
-  // Check for prefixed versions in process.env
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[`NEXT_PUBLIC_${key}`] || 
-           process.env[`VITE_${key}`] || 
-           process.env[`REACT_APP_${key}`];
-  }
-  return '';
+// --- Environment Variable Handling ---
+
+// Helper for process.env (Node, Next.js, Standard Webpack)
+const getProcessEnv = (key: string) => {
+  if (typeof process === 'undefined' || !process.env) return undefined;
+  // Check common prefixes
+  return process.env[key] || 
+         process.env[`NEXT_PUBLIC_${key}`] || 
+         process.env[`VITE_${key}`] || 
+         process.env[`REACT_APP_${key}`];
 };
 
+// Explicitly read Vite variables so the bundler can statically replace them at build time.
+// Dynamic access (e.g. import.meta.env[`VITE_${key}`]) DOES NOT work in Vite production builds.
+// @ts-ignore
+const VITE_SUPABASE_URL = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_SUPABASE_URL : undefined;
+// @ts-ignore
+const VITE_SUPABASE_ANON_KEY = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_SUPABASE_ANON_KEY : undefined;
+// @ts-ignore
+const VITE_OPENAI_API_KEY = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_OPENAI_API_KEY : undefined;
+
 // Supabase Configuration
-export const SUPABASE_URL = getEnv('SUPABASE_URL') || 'https://placeholder.supabase.co';
+export const SUPABASE_URL = VITE_SUPABASE_URL || getProcessEnv('SUPABASE_URL') || 'https://placeholder.supabase.co';
 
 // Using the provided "Publishable key" as the Anon Key
-// This is safe to be public as it uses RLS for security, but we still put it in env vars for clean code
-export const SUPABASE_ANON_KEY = getEnv('SUPABASE_ANON_KEY') || 'placeholder';
+export const SUPABASE_ANON_KEY = VITE_SUPABASE_ANON_KEY || getProcessEnv('SUPABASE_ANON_KEY') || 'placeholder';
 
 // OpenAI API Key
-// CRITICAL: In a production app, this should go through a backend proxy.
-// For this MVP demo, we load it from env vars.
-export const OPENAI_API_KEY = getEnv('OPENAI_API_KEY') || '';
+export const OPENAI_API_KEY = VITE_OPENAI_API_KEY || getProcessEnv('OPENAI_API_KEY') || '';
