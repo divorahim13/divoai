@@ -1,0 +1,5 @@
+{
+  "name": "Divo AI",
+  "description": "A smart SaaS AI companion demonstrating usage-based billing limits ($0.001/user) using Supabase and OpenAI.",
+  "requestFramePermissions": []
+}
