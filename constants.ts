@@ -12,9 +12,14 @@ export const OPENAI_MODEL = 'gpt-4o-mini';
 
 // --- Environment Variable Handling ---
 
-// In Vite (which serves this app), we use process.env to avoid TypeScript errors with import.meta.env.
-// These are replaced at BUILD TIME by Vercel/Vite.
+// CRITICAL: In Vite applications, we must use import.meta.env.
+// process.env is NOT available in the browser by default.
+// We use @ts-ignore to prevent TypeScript errors if types aren't generated.
 
-export const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
-export const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
-export const OPENAI_API_KEY = process.env.VITE_OPENAI_API_KEY || '';
+// @ts-ignore
+const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {};
+
+// Access properties explicitly to allow Vite to statically replace them at build time
+export const SUPABASE_URL = env.VITE_SUPABASE_URL || '';
+export const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || '';
+export const OPENAI_API_KEY = env.VITE_OPENAI_API_KEY || '';
