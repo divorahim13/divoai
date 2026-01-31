@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Sparkles } from 'lucide-react';
+import { SUPABASE_URL } from '../constants';
+import { Loader2, Mail, Lock, AlertCircle, CheckCircle, Sparkles, Settings } from 'lucide-react';
 
 export const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +16,13 @@ export const Auth: React.FC = () => {
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
+
+    // Pre-check for configuration issues
+    if (!SUPABASE_URL || SUPABASE_URL.includes('placeholder')) {
+      setLoading(false);
+      setError('Configuration Error: VITE_SUPABASE_URL is missing. Please check Vercel Environment Variables.');
+      return;
+    }
 
     try {
       if (isLogin) {
@@ -40,16 +48,15 @@ export const Auth: React.FC = () => {
       console.error("Auth Error:", err);
       let msg = err.message || 'An unexpected error occurred';
       
-      if (msg === 'Failed to fetch') {
-        msg = 'Connection failed. Check your internet or Supabase URL.';
+      // Improve error messages for common connection issues
+      if (msg === 'Failed to fetch' || msg.includes('Network request failed')) {
+        msg = 'Connection failed. This usually means the VITE_SUPABASE_URL is incorrect or empty in Vercel settings.';
       } else if (msg.includes('Database error') || msg.includes('handle_new_user')) {
         msg = 'Database setup missing. Please run the SQL script in Supabase Dashboard.';
       } else if (msg.includes('Invalid login credentials')) {
         msg = 'Invalid email or password.';
-      } else if (msg.includes('rate limit exceeded') || msg.includes('Too many requests')) {
-        msg = 'Email rate limit hit. Please disable "Confirm Email" in Supabase Auth Settings.';
-      } else if (msg.includes('security purposes')) {
-        msg = 'Blocked for security. Please wait a moment or try a different email.';
+      } else if (msg.includes('rate limit exceeded')) {
+        msg = 'Too many requests. Please wait a moment.';
       }
 
       setError(msg);
