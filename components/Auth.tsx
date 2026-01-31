@@ -51,6 +51,8 @@ export const Auth: React.FC = () => {
       // Improve error messages for common connection issues
       if (msg === 'Failed to fetch' || msg.includes('Network request failed')) {
         msg = 'Connection failed. This usually means the VITE_SUPABASE_URL is incorrect or empty in Vercel settings.';
+      } else if (msg.includes('Forbidden use of secret API key') || msg.includes('service_role')) {
+        msg = 'SECURITY ERROR: You entered the "service_role" (SECRET) key in Vercel. You must use the "anon" (PUBLIC) key. Please update VITE_SUPABASE_ANON_KEY settings.';
       } else if (msg.includes('Database error') || msg.includes('handle_new_user')) {
         msg = 'Database setup missing. Please run the SQL script in Supabase Dashboard.';
       } else if (msg.includes('Invalid login credentials')) {
@@ -94,7 +96,7 @@ export const Auth: React.FC = () => {
         {error && (
           <div className="mb-6 p-4 bg-red-50/80 backdrop-blur-sm text-red-600 text-sm rounded-xl border border-red-100 flex items-start shadow-sm">
              <AlertCircle className="h-5 w-5 mr-3 shrink-0" />
-             <span className="font-medium">{error}</span>
+             <span className="font-medium text-left">{error}</span>
           </div>
         )}
 
