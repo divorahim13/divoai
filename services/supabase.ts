@@ -1,12 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../constants';
-import { Message } from '../types';
+
+// --- DEBUGGING ---
+// Check the browser console (F12) to see what values are actually being loaded.
+console.log('--- SUPABASE CONFIG DEBUG ---');
+console.log('URL Length:', SUPABASE_URL ? SUPABASE_URL.length : 0);
+console.log('Key Length:', SUPABASE_ANON_KEY ? SUPABASE_ANON_KEY.length : 0);
+console.log('URL Start:', SUPABASE_URL ? SUPABASE_URL.substring(0, 15) + '...' : 'MISSING');
+// ------------------
 
 // Validation for missing or placeholder credentials
 const isPlaceholderUrl = !SUPABASE_URL || SUPABASE_URL.includes('YOUR_PROJECT_ID') || SUPABASE_URL === 'https://placeholder.supabase.co';
 
 if (isPlaceholderUrl) {
-  console.error('CRITICAL: Supabase URL is missing or invalid. Please update constants.ts with your actual Supabase Project URL.');
+  console.warn('CRITICAL: Supabase URL is missing or invalid. Check your Vercel Environment Variables.');
 }
 
 const url = isPlaceholderUrl ? 'https://placeholder.supabase.co' : SUPABASE_URL;
@@ -15,7 +22,6 @@ const key = SUPABASE_ANON_KEY || 'placeholder';
 export const supabase = createClient(url, key);
 
 // --- LOCAL STORAGE FALLBACK HELPERS ---
-// This ensures the app works even if the user hasn't run the SQL script yet.
 const LS_PREFIX = 'divo_local_';
 
 const getLocal = (key: string) => {
@@ -61,7 +67,6 @@ export const getCurrentUserProfile = async (userId: string) => {
 
   if (error) {
     if (handleTableError(error, 'UserProfile')) {
-        // Fallback: Get usage from local storage
         const localUsage = getLocal(`usage_${userId}`) || 0;
         return { id: userId, email: 'local@user.com', usage_cost: localUsage };
     }
@@ -72,14 +77,12 @@ export const getCurrentUserProfile = async (userId: string) => {
 };
 
 export const updateUserUsage = async (userId: string, newCost: number) => {
-  // 1. Try fetching current from DB
   const { data: currentProfile, error: fetchError } = await supabase
     .from('profiles')
     .select('usage_cost')
     .eq('id', userId)
     .single();
 
-  // If DB read fails due to missing table, use LocalStorage
   if (fetchError && isTableMissingError(fetchError)) {
     const currentUsage = getLocal(`usage_${userId}`) || 0;
     const updated = currentUsage + newCost;
@@ -89,7 +92,6 @@ export const updateUserUsage = async (userId: string, newCost: number) => {
 
   const updatedCost = (currentProfile?.usage_cost || 0) + newCost;
 
-  // 2. Try updating DB
   const { error: updateError } = await supabase
     .from('profiles')
     .update({ usage_cost: updatedCost })
@@ -97,7 +99,6 @@ export const updateUserUsage = async (userId: string, newCost: number) => {
 
   if (updateError) {
     if (handleTableError(updateError, 'UpdateUsage')) {
-      // Fallback: save to local
       setLocal(`usage_${userId}`, updatedCost);
       return updatedCost;
     }
@@ -117,9 +118,7 @@ export const getConversations = async (userId: string) => {
 
   if (error) {
     if (handleTableError(error, 'GetConversations')) {
-      // Fallback: Read from LocalStorage
       const localConvos = getLocal(`convos_${userId}`) || [];
-      // Ensure sorting by date desc
       return localConvos.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
     throw error;
@@ -136,7 +135,6 @@ export const createConversation = async (userId: string, title: string) => {
 
   if (error) {
     if (handleTableError(error, 'CreateConversation')) {
-      // Fallback: Create in LocalStorage
       const newConvo = {
         id: genId(),
         user_id: userId,
@@ -163,9 +161,7 @@ export const getMessages = async (conversationId: string) => {
 
   if (error) {
     if (handleTableError(error, 'GetMessages')) {
-      // Fallback: Read from LocalStorage
       const localMsgs = getLocal(`msgs_${conversationId}`) || [];
-      // Map stored 'assistant' -> 'model' if needed, though we store strictly locally here
       return localMsgs.map((msg: any) => ({
         role: msg.role === 'assistant' ? 'model' : msg.role,
         content: msg.content
@@ -189,7 +185,6 @@ export const saveMessage = async (conversationId: string, role: string, content:
 
   if (error) {
     if (handleTableError(error, 'SaveMessage')) {
-      // Fallback: Save to LocalStorage
       const msg = {
         id: genId(),
         conversation_id: conversationId,
@@ -201,7 +196,6 @@ export const saveMessage = async (conversationId: string, role: string, content:
       setLocal(`msgs_${conversationId}`, [...list, msg]);
       return;
     }
-    // Don't throw for other errors to avoid blocking UI
     console.error("Failed to save message", error);
   }
 };
